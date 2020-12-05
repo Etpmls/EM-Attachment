@@ -3,8 +3,7 @@ module github.com/Etpmls/EM-Attachment
 go 1.13
 
 require (
-	github.com/Etpmls/Etpmls-Micro v1.0.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/Etpmls/Etpmls-Micro v1.0.2
 	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.1.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1
