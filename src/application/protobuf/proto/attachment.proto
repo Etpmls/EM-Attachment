@@ -25,18 +25,18 @@ message AttachmentDiskCleanUp {
 service Attachment {
     rpc Create (AttachmentCreate) returns (em_protobuf.Response) {
         option (google.api.http) = {
-            post: "/api/v1/attachment/create"
+            post: "/api/attachment/v1/attachment/create"
             body: "*"
         };
     };
     rpc GetOne (AttachmentGetOne) returns (em_protobuf.Response) {
         option (google.api.http) = {
-            get: "/api/v1/attachment/getOne"
+            get: "/api/attachment/v1/attachment/getOne"
         };
     };
     rpc DiskCleanUp (AttachmentDiskCleanUp) returns (em_protobuf.Response) {
         option (google.api.http) = {
-            get: "/api/v1/attachment/diskCleanUp"
+            get: "/api/attachment/v1/attachment/diskCleanUp"
         };
     };
 }

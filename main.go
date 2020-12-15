@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Etpmls/EM-Attachment/src/application"
 	"github.com/Etpmls/EM-Attachment/src/application/database"
 	"github.com/Etpmls/EM-Attachment/src/register"
 	"github.com/Etpmls/EM-Attachment/src/register/config"
@@ -9,6 +10,7 @@ import (
 
 func main() {
 	var reg = em.Register{
+		Version_Service: 		map[string]string{"EM-Attachment Version": application.Version_Service},
 		GrpcServiceFunc:    	register.RegisterRpcService,
 		HttpServiceFunc:    	register.RegisterHttpService,
 		RouteFunc:          	register.RegisterRoute,
@@ -21,6 +23,6 @@ func main() {
 			StructAddr interface{}
 		}{Path: "storage/config/attachment.yaml", DebugPath: "storage/config/attachment_debug.yaml", StructAddr: &register_config.ServiceConfig},
 	}
-
+	reg.Init()
 	reg.Run()
 }

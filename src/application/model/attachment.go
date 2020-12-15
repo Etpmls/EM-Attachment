@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/Etpmls/EM-Attachment/src/register/config"
 	em "github.com/Etpmls/Etpmls-Micro"
-	em_utils "github.com/Etpmls/Etpmls-Micro/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"image"
@@ -36,14 +35,14 @@ func (this *Attachment) AttachmentValidatePath(path string) error {
 	const upload_path = "storage/upload/"
 	// 截取前十五个字符判断和Path是否相同
 	if len(path) <= len(upload_path) || !strings.Contains(path[:len(upload_path)], upload_path) {
-		em.LogError.Output(em_utils.MessageWithLineNum("Illegal request path!"))
+		em.LogError.Output(em.MessageWithLineNum("Illegal request path!"))
 		return  errors.New("Illegal request path!")
 	}
 	// 删除前缀
 	// p := strings.TrimPrefix(path, upload_path)
 	f, err := os.Stat(path)
 	if err != nil {
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		if os.IsNotExist(err) {
 			return nil
 		}
@@ -51,7 +50,7 @@ func (this *Attachment) AttachmentValidatePath(path string) error {
 	}
 	// 如果文件是目录
 	if f.IsDir() {
-		em.LogError.Output(em_utils.MessageWithLineNum("Cannot delete directory!"))
+		em.LogError.Output(em.MessageWithLineNum("Cannot delete directory!"))
 		return errors.New("Cannot delete directory!")
 	}
 	return nil
@@ -72,7 +71,7 @@ func (this *Attachment) AttachmentBatchDelete(s []string) (err error) {
 
 	// Delete Database
 	if err = em.DB.Unscoped().Where("path IN (?)", s).Delete(Attachment{}).Error; err != nil {
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		return err
 	}
 
@@ -88,7 +87,7 @@ func (this *Attachment) DeleteUnused(service_name string) error {
 	// If there is no value, return directly
 	// 如果没有值，则直接返回
 	if len(a) == 0 {
-		em.LogDebug.Output(em_utils.MessageWithLineNum("No files need to be deleted!"))
+		em.LogDebug.Output(em.MessageWithLineNum("No files need to be deleted!"))
 		return nil
 	}
 
@@ -128,7 +127,7 @@ func (this *Attachment) AttachmentValidateImage(h *multipart.FileHeader) (s stri
 		return "bmp", nil
 	default:
 		err := errors.New("This is not an image file, or the image file format is not supported!")
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		return "", err
 	}
 }
@@ -149,12 +148,12 @@ func (this *Attachment) AttachmentUploadImage(file *multipart.FileHeader, extens
 	file_path := path + u + "." + extension
 	err = this.SaveUploadedFile(file, file_path)
 	if err != nil {
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		return p, errors.New("Failed to save file!")
 	}
 
 	if err = em.DB.Create(&Attachment{Path: file_path}).Error; err != nil {
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		return p, err
 	}
 
@@ -194,7 +193,7 @@ func (this *Attachment) MakeUrlPath(attachment *Attachment) {
 // 如果是本地储存，则保存不带host的路径，若非本地储存，则保存完整url路径
 func (this *Attachment) GetUrlPath(urlPath string) string {
 	if register_config.ServiceConfig.Service.FileStorageMethod == "local" {
-		return em_utils.GetUrlPath(urlPath, true)
+		return em.GetUrlPath(urlPath, true)
 	}
 	return urlPath
 }

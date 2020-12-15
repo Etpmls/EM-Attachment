@@ -10,7 +10,6 @@ import (
 	em "github.com/Etpmls/Etpmls-Micro"
 	em_library "github.com/Etpmls/Etpmls-Micro/library"
 	em_protobuf "github.com/Etpmls/Etpmls-Micro/protobuf"
-	em_utils "github.com/Etpmls/Etpmls-Micro/utils"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
@@ -38,7 +37,7 @@ func (this ServiceAttachment) UploadImage(w http.ResponseWriter, r *http.Request
 	var attachment model.Attachment
 	extension, err := attachment.AttachmentValidateImage(file)
 	if err != nil {
-		em.LogDebug.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogDebug.Output(em.MessageWithLineNum(err.Error()))
 		b, _ := em.ErrorHttp(em.ERROR_Code, "Image verification failed!", nil, err)
 		w.Write(b)
 		return
@@ -46,7 +45,7 @@ func (this ServiceAttachment) UploadImage(w http.ResponseWriter, r *http.Request
 
 	path, err := attachment.AttachmentUploadImage(file, extension)
 	if err != nil {
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		b, _ := em.ErrorHttp(em.ERROR_Code, "Image upload failed!", nil, err)
 		w.Write(b)
 		return
@@ -54,7 +53,7 @@ func (this ServiceAttachment) UploadImage(w http.ResponseWriter, r *http.Request
 
 	b, err := json.Marshal(map[string]string{"path" : register_config.ServiceConfig.Service.Host + path})
 	if err != nil {
-		em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		b, _ := em.ErrorHttp(em.ERROR_Code, "Image upload failed!", nil, err)
 		w.Write(b)
 		return
@@ -79,7 +78,7 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 	var vd validate_AttachmentCreate
 	err := em_library.Validator.Validate(request, &vd)
 	if err != nil {
-		em.LogWarn.Output(em_utils.MessageWithLineNum(err.Error()))
+		em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
 		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
 	}
 
@@ -106,7 +105,7 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 			// 根据Path删除附件和数据库
 			err := old.AttachmentBatchDelete([]string{old.Path})
 			if err != nil {
-				em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+				em.LogError.Output(em.MessageWithLineNum(err.Error()))
 				return err
 			}
 		}
@@ -114,9 +113,9 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 		// If the form contains thumbnails
 		// 如果表单包含缩略图，
 		if len(request.Path) > 0 {
-			m, err := em_utils.StructToMap(request)
+			m, err := em.StructToMap(request)
 			if err != nil {
-				em.LogError.Output(em_utils.MessageWithLineNum(err.Error()))
+				em.LogError.Output(em.MessageWithLineNum(err.Error()))
 				return err
 			}
 			// Note: json to map int format will be converted to float
@@ -148,7 +147,7 @@ func (this *ServiceAttachment) GetOne(ctx context.Context, request *protobuf.Att
 		var vd validate_AttachmentGetOne
 		err := em_library.Validator.Validate(request, &vd)
 		if err != nil {
-			em.LogWarn.Output(em_utils.MessageWithLineNum(err.Error()))
+			em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
 			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
 		}
 	}
@@ -156,7 +155,7 @@ func (this *ServiceAttachment) GetOne(ctx context.Context, request *protobuf.Att
 	var a model.Attachment
 	result := em.DB.Where("service = ?", request.GetService()).Where("owner_id = ?", request.GetOwnerId()).Where("owner_type = ?", request.GetOwnerType()).First(&a)
 	if result.RowsAffected == 0 {
-		em.LogInfo.Output(em_utils.MessageWithLineNum("No record"))
+		em.LogInfo.Output(em.MessageWithLineNum("No record"))
 	}
 
 	// If it is stored locally, the path plus the domain name
@@ -175,7 +174,7 @@ func (this *ServiceAttachment) DiskCleanUp(ctx context.Context, request *protobu
 		var vd validate_AttachmentDiskCleanUp
 		err := em_library.Validator.Validate(request, &vd)
 		if err != nil {
-			em.LogWarn.Output(em_utils.MessageWithLineNum(err.Error()))
+			em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
 			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
 		}
 	}
