@@ -25,8 +25,6 @@ jobs:
           cp storage/config/app.yaml.example storage/config/app_debug.yaml
           rm storage/config/app.yaml.example
           rm storage/config/.gitignore
-          rm storage/menu/.gitignore
-          mv storage/menu/menu.json.example storage/menu/menu.json
 
       - name: Process attachment files
         run: |
