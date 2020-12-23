@@ -4,7 +4,6 @@ import (
 	"github.com/Etpmls/EM-Attachment/src/application"
 	"github.com/Etpmls/EM-Attachment/src/application/database"
 	"github.com/Etpmls/EM-Attachment/src/register"
-	"github.com/Etpmls/EM-Attachment/src/register/config"
 	"github.com/Etpmls/Etpmls-Micro"
 )
 
@@ -21,7 +20,7 @@ func main() {
 			Path       string
 			DebugPath  string
 			StructAddr interface{}
-		}{Path: "storage/config/attachment.yaml", DebugPath: "storage/config/attachment_debug.yaml", StructAddr: &register_config.ServiceConfig},
+		}{Path: "storage/config/attachment.yaml", DebugPath: "storage/config/attachment_debug.yaml", StructAddr: &application.ServiceConfig},
 	}
 	reg.Init()
 	reg.Run()

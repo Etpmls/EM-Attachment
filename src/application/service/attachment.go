@@ -3,15 +3,12 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/Etpmls/EM-Attachment/src/application"
 	"github.com/Etpmls/EM-Attachment/src/application/model"
 	"github.com/Etpmls/EM-Attachment/src/application/protobuf"
-	"github.com/Etpmls/EM-Attachment/src/register/config"
 	em "github.com/Etpmls/Etpmls-Micro"
-	em_library "github.com/Etpmls/Etpmls-Micro/library"
 	em_protobuf "github.com/Etpmls/Etpmls-Micro/protobuf"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -51,7 +48,7 @@ func (this ServiceAttachment) UploadImage(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	b, err := json.Marshal(map[string]string{"path" : register_config.ServiceConfig.Service.Host + path})
+	b, err := json.Marshal(map[string]string{"path" : application.ServiceConfig.Service.Host + path})
 	if err != nil {
 		em.LogError.Output(em.MessageWithLineNum(err.Error()))
 		b, _ := em.ErrorHttp(em.ERROR_Code, "Image upload failed!", nil, err)
@@ -76,20 +73,87 @@ type validate_AttachmentCreate struct {
 func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.AttachmentCreate) (*em_protobuf.Response, error) {
 	// Validate
 	var vd validate_AttachmentCreate
-	err := em_library.Validator.Validate(request, &vd)
+	err := em.Validator.Validate(request, &vd)
 	if err != nil {
-		em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
-		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+		em.LogWarn.Output(em.MessageWithLineNum_OneRecord(err.Error()))
+		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
 	}
 
+	// Set storage method
+	request.StorageMethod = application.ServiceConfig.Service.FileStorageMethod
+	var attachment model.Attachment
+	request.Path = attachment.GetUrlPath(request.Path)
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	fmt.Println(ok)
-	fmt.Println(md)
-	fmt.Println(md.Get("token"))
+	err = em.DB.Transaction(func(tx *gorm.DB) error {
+		var old model.Attachment
+		result := tx.Where("service = ?", request.Service).Where("owner_id = ?", request.OwnerId).Where("owner_type = ?", request.OwnerType).First(&old)
+
+		// If the form contains attachment path
+		// 如果表单包含附件路径
+		if len(request.Path) > 0 {
+			// Same as the previous attachment path, skip
+			// 和以前附件路径一样，跳过
+			if old.Path == request.Path {
+				return nil
+			} else {
+				// Delete old attachments, update new attachments
+				// 删除旧附件，更新新附件
+				if result.RowsAffected > 0 {
+					// Delete attachments and databases according to Path
+					// 根据Path删除附件和数据库
+					err := old.AttachmentBatchDelete([]string{old.Path})
+					if err != nil {
+						em.LogError.Output(em.MessageWithLineNum(err.Error()))
+						return err
+					}
+				}
+
+				m, err := em.StructToMap(request)
+				if err != nil {
+					em.LogError.Output(em.MessageWithLineNum(err.Error()))
+					return err
+				}
+				// Note: json to map int format will be converted to float
+				// 注意：json转map int格式会转换为float
+				m["owner_id"] = uint(m["owner_id"].(float64))
+
+				result := tx.Model(model.Attachment{}).Where("path = ?", request.Path).Updates(m)
+				if result.Error != nil {
+					return result.Error
+				}
+			}
+
+		} else {
+			if result.RowsAffected > 0 {
+				// Delete attachments and databases according to Path
+				// 根据Path删除附件和数据库
+				err := old.AttachmentBatchDelete([]string{old.Path})
+				if err != nil {
+					em.LogError.Output(em.MessageWithLineNum(err.Error()))
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Create"), nil, err)
+	}
+
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
+}
+/*func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.AttachmentCreate) (*em_protobuf.Response, error) {
+	// Validate
+	var vd validate_AttachmentCreate
+	err := em.Validator.Validate(request, &vd)
+	if err != nil {
+		em.LogWarn.Output(em.MessageWithLineNum_OneRecord(err.Error()))
+		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+	}
 
 	// Set storage method
-	request.StorageMethod = register_config.ServiceConfig.Service.FileStorageMethod
+	request.StorageMethod = application.ServiceConfig.Service.FileStorageMethod
 	var attachment model.Attachment
 	request.Path = attachment.GetUrlPath(request.Path)
 
@@ -130,11 +194,11 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 		return nil
 	})
 	if err != nil {
-		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Create"), nil, err)
+		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Create"), nil, err)
 	}
 
-	return em.SuccessRpc(em.SUCCESS_Code, em_library.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
-}
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
+}*/
 
 type validate_AttachmentGetOne struct {
 	Service string	`json:"service" validate:"required,max=255"`
@@ -145,10 +209,10 @@ func (this *ServiceAttachment) GetOne(ctx context.Context, request *protobuf.Att
 	// Validate
 	{
 		var vd validate_AttachmentGetOne
-		err := em_library.Validator.Validate(request, &vd)
+		err := em.Validator.Validate(request, &vd)
 		if err != nil {
 			em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
-			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
 		}
 	}
 
@@ -162,7 +226,7 @@ func (this *ServiceAttachment) GetOne(ctx context.Context, request *protobuf.Att
 	// 如果是本地储存，则路径加上域名
 	a.MakeUrlPath(&a)
 
-	return em.SuccessRpc(em.SUCCESS_Code, em_library.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), a)
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), a)
 }
 
 type validate_AttachmentDiskCleanUp struct {
@@ -172,18 +236,18 @@ func (this *ServiceAttachment) DiskCleanUp(ctx context.Context, request *protobu
 	{
 		// Validate
 		var vd validate_AttachmentDiskCleanUp
-		err := em_library.Validator.Validate(request, &vd)
+		err := em.Validator.Validate(request, &vd)
 		if err != nil {
 			em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
-			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
 		}
 	}
 
 	var attachment model.Attachment
 	err := attachment.DeleteUnused(request.GetService())
 	if err != nil {
-		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em_library.I18n.TranslateFromRequest(ctx, "ERROR_Clear"), nil, err)
+		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Clear"), nil, err)
 	}
 
-	return em.SuccessRpc(em.SUCCESS_Code, em_library.I18n.TranslateFromRequest(ctx, "SUCCESS_Clear"), nil)
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Clear"), nil)
 }

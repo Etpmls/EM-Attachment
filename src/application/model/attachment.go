@@ -2,7 +2,7 @@ package model
 
 import (
 	"errors"
-	"github.com/Etpmls/EM-Attachment/src/register/config"
+	"github.com/Etpmls/EM-Attachment/src/application"
 	em "github.com/Etpmls/Etpmls-Micro"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -181,18 +181,18 @@ func (this *Attachment) SaveUploadedFile(file *multipart.FileHeader, dst string)
 // If it is stored locally, the path plus the domain name
 // 如果是本地储存，则路径加上域名
 func (this *Attachment) MakeUrlPath(attachment *Attachment) {
-	if attachment.Path == "" || register_config.ServiceConfig.Service.FileStorageMethod != "local" {
+	if attachment.Path == "" || application.ServiceConfig.Service.FileStorageMethod != "local" {
 		return
 	}
 
-	attachment.Path = register_config.ServiceConfig.Service.Host + attachment.Path
+	attachment.Path = application.ServiceConfig.Service.Host + attachment.Path
 	return
 }
 
 // If it is stored locally, save the path without host, if it is not stored locally, save the full URL path
 // 如果是本地储存，则保存不带host的路径，若非本地储存，则保存完整url路径
 func (this *Attachment) GetUrlPath(urlPath string) string {
-	if register_config.ServiceConfig.Service.FileStorageMethod == "local" {
+	if application.ServiceConfig.Service.FileStorageMethod == "local" {
 		return em.GetUrlPath(urlPath, true)
 	}
 	return urlPath
