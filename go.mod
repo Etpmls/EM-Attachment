@@ -12,4 +12,3 @@ require (
 	google.golang.org/protobuf v1.25.0
 	gorm.io/gorm v1.20.8
 )
-
