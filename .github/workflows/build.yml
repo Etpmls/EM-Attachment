@@ -32,6 +32,9 @@ jobs:
           cp storage/config/attachment.yaml.example storage/config/attachment_debug.yaml
           rm storage/config/attachment.yaml.example
           rm storage/upload/.gitignore
+          rm storage/language/.gitignore
+          wget -P ./storage/language https://raw.githubusercontent.com/Etpmls/Etpmls-Micro/v1/file/zh.toml
+          wget -P ./storage/language https://raw.githubusercontent.com/Etpmls/Etpmls-Micro/v1/file/en.toml
 
       - name: Build normal
         run: |
