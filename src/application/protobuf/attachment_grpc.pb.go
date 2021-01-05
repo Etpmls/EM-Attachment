@@ -20,7 +20,11 @@ const _ = grpc.SupportPackageIsVersion7
 type AttachmentClient interface {
 	Create(ctx context.Context, in *AttachmentCreate, opts ...grpc.CallOption) (*protobuf.Response, error)
 	GetOne(ctx context.Context, in *AttachmentGetOne, opts ...grpc.CallOption) (*protobuf.Response, error)
+	GetMany(ctx context.Context, in *AttachmentGetMany, opts ...grpc.CallOption) (*protobuf.Response, error)
 	DiskCleanUp(ctx context.Context, in *AttachmentDiskCleanUp, opts ...grpc.CallOption) (*protobuf.Response, error)
+	CreateMany(ctx context.Context, in *AttachmentCreateMany, opts ...grpc.CallOption) (*protobuf.Response, error)
+	Delete(ctx context.Context, in *AttachmentDelete, opts ...grpc.CallOption) (*protobuf.Response, error)
+	Append(ctx context.Context, in *AttachmentAppend, opts ...grpc.CallOption) (*protobuf.Response, error)
 }
 
 type attachmentClient struct {
@@ -49,9 +53,45 @@ func (c *attachmentClient) GetOne(ctx context.Context, in *AttachmentGetOne, opt
 	return out, nil
 }
 
+func (c *attachmentClient) GetMany(ctx context.Context, in *AttachmentGetMany, opts ...grpc.CallOption) (*protobuf.Response, error) {
+	out := new(protobuf.Response)
+	err := c.cc.Invoke(ctx, "/protobuf.Attachment/GetMany", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *attachmentClient) DiskCleanUp(ctx context.Context, in *AttachmentDiskCleanUp, opts ...grpc.CallOption) (*protobuf.Response, error) {
 	out := new(protobuf.Response)
 	err := c.cc.Invoke(ctx, "/protobuf.Attachment/DiskCleanUp", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *attachmentClient) CreateMany(ctx context.Context, in *AttachmentCreateMany, opts ...grpc.CallOption) (*protobuf.Response, error) {
+	out := new(protobuf.Response)
+	err := c.cc.Invoke(ctx, "/protobuf.Attachment/CreateMany", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *attachmentClient) Delete(ctx context.Context, in *AttachmentDelete, opts ...grpc.CallOption) (*protobuf.Response, error) {
+	out := new(protobuf.Response)
+	err := c.cc.Invoke(ctx, "/protobuf.Attachment/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *attachmentClient) Append(ctx context.Context, in *AttachmentAppend, opts ...grpc.CallOption) (*protobuf.Response, error) {
+	out := new(protobuf.Response)
+	err := c.cc.Invoke(ctx, "/protobuf.Attachment/Append", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +104,11 @@ func (c *attachmentClient) DiskCleanUp(ctx context.Context, in *AttachmentDiskCl
 type AttachmentServer interface {
 	Create(context.Context, *AttachmentCreate) (*protobuf.Response, error)
 	GetOne(context.Context, *AttachmentGetOne) (*protobuf.Response, error)
+	GetMany(context.Context, *AttachmentGetMany) (*protobuf.Response, error)
 	DiskCleanUp(context.Context, *AttachmentDiskCleanUp) (*protobuf.Response, error)
+	CreateMany(context.Context, *AttachmentCreateMany) (*protobuf.Response, error)
+	Delete(context.Context, *AttachmentDelete) (*protobuf.Response, error)
+	Append(context.Context, *AttachmentAppend) (*protobuf.Response, error)
 	mustEmbedUnimplementedAttachmentServer()
 }
 
@@ -78,8 +122,20 @@ func (UnimplementedAttachmentServer) Create(context.Context, *AttachmentCreate) 
 func (UnimplementedAttachmentServer) GetOne(context.Context, *AttachmentGetOne) (*protobuf.Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetOne not implemented")
 }
+func (UnimplementedAttachmentServer) GetMany(context.Context, *AttachmentGetMany) (*protobuf.Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMany not implemented")
+}
 func (UnimplementedAttachmentServer) DiskCleanUp(context.Context, *AttachmentDiskCleanUp) (*protobuf.Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DiskCleanUp not implemented")
+}
+func (UnimplementedAttachmentServer) CreateMany(context.Context, *AttachmentCreateMany) (*protobuf.Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateMany not implemented")
+}
+func (UnimplementedAttachmentServer) Delete(context.Context, *AttachmentDelete) (*protobuf.Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedAttachmentServer) Append(context.Context, *AttachmentAppend) (*protobuf.Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Append not implemented")
 }
 func (UnimplementedAttachmentServer) mustEmbedUnimplementedAttachmentServer() {}
 
@@ -130,6 +186,24 @@ func _Attachment_GetOne_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Attachment_GetMany_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttachmentGetMany)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AttachmentServer).GetMany(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.Attachment/GetMany",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AttachmentServer).GetMany(ctx, req.(*AttachmentGetMany))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Attachment_DiskCleanUp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AttachmentDiskCleanUp)
 	if err := dec(in); err != nil {
@@ -148,6 +222,60 @@ func _Attachment_DiskCleanUp_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Attachment_CreateMany_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttachmentCreateMany)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AttachmentServer).CreateMany(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.Attachment/CreateMany",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AttachmentServer).CreateMany(ctx, req.(*AttachmentCreateMany))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Attachment_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttachmentDelete)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AttachmentServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.Attachment/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AttachmentServer).Delete(ctx, req.(*AttachmentDelete))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Attachment_Append_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AttachmentAppend)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AttachmentServer).Append(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/protobuf.Attachment/Append",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AttachmentServer).Append(ctx, req.(*AttachmentAppend))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Attachment_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "protobuf.Attachment",
 	HandlerType: (*AttachmentServer)(nil),
@@ -161,8 +289,24 @@ var _Attachment_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Attachment_GetOne_Handler,
 		},
 		{
+			MethodName: "GetMany",
+			Handler:    _Attachment_GetMany_Handler,
+		},
+		{
 			MethodName: "DiskCleanUp",
 			Handler:    _Attachment_DiskCleanUp_Handler,
+		},
+		{
+			MethodName: "CreateMany",
+			Handler:    _Attachment_CreateMany_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Attachment_Delete_Handler,
+		},
+		{
+			MethodName: "Append",
+			Handler:    _Attachment_Append_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

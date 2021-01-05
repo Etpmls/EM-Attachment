@@ -58,7 +58,40 @@ func (this *Attachment) AttachmentValidatePath(path string) error {
 
 // Batch delete any type of files in storage/upload/
 // 批量删除storage/upload/中的任何类型文件
+// Deprecated: Use BatchDelete_LocalFile
 func (this *Attachment) AttachmentBatchDelete(s []string) (err error) {
+	return this.BatchDelete_LocalFile(s)
+}
+
+// Batch delete
+// 批量删除
+func (this *Attachment) BatchDelete(a []Attachment) (err error) {
+	var local []string
+
+	for _, v := range a {
+		switch v.StorageMethod {
+		case "local" :
+			local = append(local, v.Path)
+		}
+	}
+	
+	// Delete local files
+	// 删除本地文件
+	err = this.BatchDelete_LocalFile(local)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Batch delete any type of files in storage/upload/
+// 批量删除storage/upload/中的任何类型文件
+func (this *Attachment) BatchDelete_LocalFile(s []string) (err error) {
+	if len(s) == 0 {
+		return nil
+	}
+
 	for _, v := range s {
 		// Validate If a File
 		err = this.AttachmentValidatePath(v)

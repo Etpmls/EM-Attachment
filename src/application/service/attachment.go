@@ -143,40 +143,86 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 
 	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
 }
-/*func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.AttachmentCreate) (*em_protobuf.Response, error) {
-	// Validate
-	var vd validate_AttachmentCreate
-	err := em.Validator.Validate(request, &vd)
-	if err != nil {
-		em.LogWarn.Output(em.MessageWithLineNum_OneRecord(err.Error()))
-		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+
+type validate_AttachmentCreateMany struct {
+	Service string	`json:"service" validate:"required,max=255"`
+	Paths []string	`json:"paths"`
+	OwnerID uint	`json:"owner_id" validate:"required"`
+	OwnerType string	`json:"owner_type" validate:"required,max=255"`
+}
+func (this *ServiceAttachment) CreateMany(ctx context.Context, request *protobuf.AttachmentCreateMany) (*em_protobuf.Response, error) {
+	{
+		// Validate
+		var vd validate_AttachmentCreateMany
+		err := em.Validator.Validate(request, &vd)
+		if err != nil {
+			em.LogWarn.Output(em.MessageWithLineNum_OneRecord(err.Error()))
+			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+		}
 	}
 
 	// Set storage method
 	request.StorageMethod = application.ServiceConfig.Service.FileStorageMethod
 	var attachment model.Attachment
-	request.Path = attachment.GetUrlPath(request.Path)
+	var tmp []string
+	for _, v := range request.Paths {
+		tmp = append(tmp, attachment.GetUrlPath(v))
+	}
+	request.Paths = tmp
 
-	err = em.DB.Transaction(func(tx *gorm.DB) error {
-		// Delete historical thumbnails
-		// 则删除历史缩略图
-		var old model.Attachment
-		result := tx.Where("service = ?", request.Service).Where("owner_id = ?", request.OwnerId).Where("owner_type = ?", request.OwnerType).First(&old)
-		// Delete if found
-		// 如果找到记录则删除
-		if result.RowsAffected > 0 {
+	err := em.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. Find old attachments
+		// 1.查找旧附件
+		var old []model.Attachment
+		tx.Where("service = ?", request.Service).Where("owner_id = ?", request.OwnerId).Where("owner_type = ?", request.OwnerType).Find(&old)
+
+		// 2. Remove the attachments with the same path, and the rest is the different attachments
+		// 2.去除path相同的附件，剩下的就是差异的附件
+		var same_req = make(map[int]bool)
+		var same_old = make(map[int]bool)
+		for k, v := range request.Paths {
+			for ok, ov := range old {
+				// same attachment
+				// 相同的附件
+				if v == ov.Path {
+					same_req[k] = true
+					same_old[ok] = true
+				}
+			}
+		}
+		// 2-1 Get old attachments
+		// 2-1 获取老的附件
+		var old_paths []string
+		for k, v := range old {
+			if same_old[k] != true {
+				old_paths = append(old_paths, v.Path)
+			}
+		}
+		// 2-2 Get new attachment
+		// 2-2 获取新的附件
+		var new_paths []string
+		for k, v := range request.Paths {
+			if same_req[k] != true {
+				new_paths = append(new_paths, v)
+			}
+		}
+
+		// 3. Delete old attachments
+		// 3.删除老的附件
+		if len(old_paths) > 0 {
 			// Delete attachments and databases according to Path
 			// 根据Path删除附件和数据库
-			err := old.AttachmentBatchDelete([]string{old.Path})
+			var a model.Attachment
+			err := a.AttachmentBatchDelete(old_paths)
 			if err != nil {
 				em.LogError.Output(em.MessageWithLineNum(err.Error()))
 				return err
 			}
 		}
 
-		// If the form contains thumbnails
-		// 如果表单包含缩略图，
-		if len(request.Path) > 0 {
+		// 4. If the new attachment list is not empty, add a new attachment
+		// 4.如果新附件列表不为空，则增加新的附件
+		if len(new_paths) > 0 {
 			m, err := em.StructToMap(request)
 			if err != nil {
 				em.LogError.Output(em.MessageWithLineNum(err.Error()))
@@ -185,12 +231,14 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 			// Note: json to map int format will be converted to float
 			// 注意：json转map int格式会转换为float
 			m["owner_id"] = uint(m["owner_id"].(float64))
+			delete(m, "paths")
 
-			result := tx.Model(model.Attachment{}).Where("path = ?", attachment.GetUrlPath(request.Path)).Updates(m)
+			result := tx.Model(model.Attachment{}).Where("path IN ?", new_paths).Updates(m)
 			if result.Error != nil {
 				return result.Error
 			}
 		}
+
 		return nil
 	})
 	if err != nil {
@@ -198,7 +246,38 @@ func (this *ServiceAttachment) Create(ctx context.Context, request *protobuf.Att
 	}
 
 	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
-}*/
+}
+
+type validate_AttachmentDelete struct {
+	Service string	`json:"service" validate:"required,max=255"`
+	OwnerIds []uint	`json:"owner_ids" validate:"required"`
+	OwnerType string	`json:"owner_type" validate:"required,max=255"`
+}
+func (this *ServiceAttachment) Delete(ctx context.Context, request *protobuf.AttachmentDelete) (*em_protobuf.Response, error) {
+	{
+		// Validate
+		var vd validate_AttachmentDelete
+		err := em.Validator.Validate(request, &vd)
+		if err != nil {
+			em.LogWarn.Output(em.MessageWithLineNum_OneRecord(err.Error()))
+			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+		}
+	}
+
+	// 查找全部attachment
+	var list []model.Attachment
+	em.DB.Model(&model.Attachment{}).Where("service = ?", request.GetService()).Where("owner_type = ?", request.GetOwnerType()).Where("owner_id IN ?", request.GetOwnerIds()).Find(&list)
+	if len(list) > 0 {
+		// 根据Path删除附件
+		var attachment model.Attachment
+		err := attachment.BatchDelete(list)
+		if err != nil {
+			return em.ErrorRpc(codes.Internal, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Delete"), nil, err)
+		}
+	}
+
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Delete"), nil)
+}
 
 type validate_AttachmentGetOne struct {
 	Service string	`json:"service" validate:"required,max=255"`
@@ -229,6 +308,42 @@ func (this *ServiceAttachment) GetOne(ctx context.Context, request *protobuf.Att
 	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), a)
 }
 
+type validate_AttachmentGetMany struct {
+	Service string	`json:"service" validate:"required,max=255"`
+	OwnerIds []uint	`json:"owner_ids"`
+	OwnerType string	`json:"owner_type" validate:"required,max=255"`
+}
+func (this *ServiceAttachment) GetMany(ctx context.Context, request *protobuf.AttachmentGetMany) (*em_protobuf.Response, error) {
+	// Validate
+	{
+		var vd validate_AttachmentGetMany
+		err := em.Validator.Validate(request, &vd)
+		if err != nil {
+			em.LogWarn.Output(em.MessageWithLineNum(err.Error()))
+			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+		}
+	}
+
+	// If no ids, skip
+	if len(request.GetOwnerIds()) == 0 {
+		return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
+	}
+
+	var a []model.Attachment
+	result := em.DB.Where("service = ?", request.GetService()).Where("owner_id IN ?", request.GetOwnerIds()).Where("owner_type = ?", request.GetOwnerType()).Find(&a)
+	if result.RowsAffected == 0 {
+		em.LogInfo.Output(em.MessageWithLineNum("No record"))
+	}
+
+	for k, v := range a {
+		// If it is stored locally, the path plus the domain name
+		// 如果是本地储存，则路径加上域名
+		v.MakeUrlPath(&a[k])
+	}
+
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), a)
+}
+
 type validate_AttachmentDiskCleanUp struct {
 	Service string	`json:"service" validate:"required,max=255"`
 }
@@ -250,4 +365,60 @@ func (this *ServiceAttachment) DiskCleanUp(ctx context.Context, request *protobu
 	}
 
 	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Clear"), nil)
+}
+
+type validate_AttachmentAppend struct {
+	Service string	`json:"service" validate:"required,max=255"`
+	Paths []string	`json:"paths" validate:"required"`
+	OwnerID uint	`json:"owner_id" validate:"required"`
+	OwnerType string	`json:"owner_type" validate:"required,max=255"`
+}
+func (this *ServiceAttachment) Append(ctx context.Context, request *protobuf.AttachmentAppend) (*em_protobuf.Response, error) {
+	{
+		// Validate
+		var vd validate_AttachmentAppend
+		err := em.Validator.Validate(request, &vd)
+		if err != nil {
+			em.LogWarn.Output(em.MessageWithLineNum_OneRecord(err.Error()))
+			return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Validate"), nil, err)
+		}
+	}
+
+	// Set storage method
+	request.StorageMethod = application.ServiceConfig.Service.FileStorageMethod
+	var attachment model.Attachment
+	var tmp []string
+	for _, v := range request.Paths {
+		tmp = append(tmp, attachment.GetUrlPath(v))
+	}
+	request.Paths = tmp
+
+	err := em.DB.Transaction(func(tx *gorm.DB) error {
+
+		// 4. If the new attachment list is not empty, add a new attachment
+		// 4.如果新附件列表不为空，则增加新的附件
+		if len(request.Paths) > 0 {
+			m, err := em.StructToMap(request)
+			if err != nil {
+				em.LogError.Output(em.MessageWithLineNum(err.Error()))
+				return err
+			}
+			// Note: json to map int format will be converted to float
+			// 注意：json转map int格式会转换为float
+			m["owner_id"] = uint(m["owner_id"].(float64))
+			delete(m, "path")
+
+			result := tx.Model(model.Attachment{}).Where("path IN ?", request.Paths).Updates(m)
+			if result.Error != nil {
+				return result.Error
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return em.ErrorRpc(codes.InvalidArgument, em.ERROR_Code, em.I18n.TranslateFromRequest(ctx, "ERROR_Create"), nil, err)
+	}
+
+	return em.SuccessRpc(em.SUCCESS_Code, em.I18n.TranslateFromRequest(ctx, "SUCCESS_Create"), nil)
 }

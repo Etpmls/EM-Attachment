@@ -18,8 +18,36 @@ message AttachmentGetOne {
     string owner_type=3;
 }
 
+message AttachmentGetMany {
+    string service=1;
+    repeated uint32 owner_ids=2;
+    string owner_type=3;
+}
+
 message AttachmentDiskCleanUp {
     string service=1;
+}
+
+message AttachmentCreateMany {
+    string service=1;
+    string storage_method=2;
+    repeated string paths=3;
+    uint32 owner_id=4;
+    string owner_type=5;
+}
+
+message AttachmentDelete {
+    string service=1;
+    repeated uint32 owner_ids=2;
+    string owner_type=3;
+}
+
+message AttachmentAppend {
+    string service=1;
+    string storage_method=2;
+    repeated string paths=3;
+    uint32 owner_id=4;
+    string owner_type=5;
 }
 
 service Attachment {
@@ -34,9 +62,32 @@ service Attachment {
             get: "/api/attachment/v1/attachment/getOne"
         };
     };
+    rpc GetMany (AttachmentGetMany) returns (em_protobuf.Response) {
+        option (google.api.http) = {
+            get: "/api/attachment/v1/attachment/getMany"
+        };
+    };
     rpc DiskCleanUp (AttachmentDiskCleanUp) returns (em_protobuf.Response) {
         option (google.api.http) = {
             get: "/api/attachment/v1/attachment/diskCleanUp"
+        };
+    };
+    rpc CreateMany (AttachmentCreateMany) returns (em_protobuf.Response) {
+        option (google.api.http) = {
+            post: "/api/attachment/v1/attachment/createMany"
+            body: "*"
+        };
+    };
+    rpc Delete (AttachmentDelete) returns (em_protobuf.Response) {
+        option (google.api.http) = {
+            delete: "/api/attachment/v1/attachment/delete"
+            body: "*"
+        };
+    };
+    rpc Append (AttachmentAppend) returns (em_protobuf.Response) {
+        option (google.api.http) = {
+            post: "/api/attachment/v1/attachment/append"
+            body: "*"
         };
     };
 }
