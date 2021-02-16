@@ -1,0 +1,12 @@
+[
+	"traefik.http.routers.AttachmentHttpService.entrypoints=web",
+	"traefik.http.routers.AttachmentHttpService.rule=Host(`www.xxxxxx.com`) && PathPrefix(`/api/attachment/`)",
+	"traefik.http.routers.AttachmentHttpService.middlewares=circuitBreaker_AttachmentHttpService@file,forwardAuth@file",
+	"traefik.http.routers.AttachmentHttpService.service=AttachmentHttpService",
+
+	"traefik.http.routers.AttachmentHttpService_Upload.entrypoints=web",
+	"traefik.http.routers.AttachmentHttpService_Upload.rule=Host(`www.xxxxxx.com`) && PathPrefix(`/storage/upload/`)",
+	"traefik.http.routers.AttachmentHttpService_Upload.service=AttachmentHttpService",
+
+	"traefik.http.services.AttachmentHttpService.loadbalancer.passhostheader=true"
+]
