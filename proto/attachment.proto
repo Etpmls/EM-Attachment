@@ -1,0 +1,60 @@
+syntax = "proto3";
+package attachment;
+option go_package = ".;pb";
+import "include/em.proto";
+
+message AttachmentGetOne {
+    string service=1;
+    uint32 owner_id=2;
+    string owner_type=3;
+}
+
+message AttachmentGetMany {
+    string service=1;
+    repeated uint32 owner_ids=2;
+    string owner_type=3;
+}
+
+message AttachmentCreate {
+    string service=1;
+    string storage_method=2;
+    string path=3;
+    uint32 owner_id=4;
+    string owner_type=5;
+}
+
+message AttachmentCreateMany {
+    string service=1;
+    string storage_method=2;
+    repeated string paths=3;
+    uint32 owner_id=4;
+    string owner_type=5;
+}
+
+message AttachmentAppend {
+    string service=1;
+    string storage_method=2;
+    repeated string paths=3;
+    uint32 owner_id=4;
+    string owner_type=5;
+}
+
+message AttachmentDelete {
+    string service=1;
+    repeated uint32 owner_ids=2;
+    string owner_type=3;
+}
+
+message AttachmentDiskCleanUp {
+    string service=1;
+}
+
+service Attachment {
+    rpc GetOne (AttachmentGetOne) returns (em.Response) {};
+    rpc GetMany (AttachmentGetMany) returns (em.Response) {};
+    rpc Create (AttachmentCreate) returns (em.Response) {};
+    rpc CreateMany (AttachmentCreateMany) returns (em.Response) {};
+    rpc Append (AttachmentAppend) returns (em.Response) {};
+    rpc Delete (AttachmentDelete) returns (em.Response) {};
+    rpc DiskCleanUp (AttachmentDiskCleanUp) returns (em.Response) {};
+}
